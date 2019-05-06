@@ -1,0 +1,153 @@
+---
+title: "HUDK4051: Prediction - Comparing Trees"
+author: "Aidi Bian"
+date: "2/16/2019"
+output: html_document
+---
+
+In this project I will model student data using three flavors of tree algorithm. We will be using these algorithms to attempt to predict which students drop out of courses. Many universities have a problem with students over-enrolling in courses at the beginning of semester and then dropping most of them as the make decisions about which classes to attend. This makes it difficult to plan for the semester and allocate resources. However, schools don't want to restrict the choice of their students. One solution is to create predictions of which students are likley to drop out of which courses and use these predictions to inform semester planning. 
+
+We will be using the tree algorithms to build models of which students are likely to drop out of which classes. 
+
+## Software
+
+In order to generate our models we will need several packages. The first package we should install is [caret](https://cran.r-project.org/web/packages/caret/index.html).
+
+There are many prediction packages available and they all have slightly different syntax. caret is a package that brings all the different algorithms under one hood using the same syntax. 
+
+The other packages we install is party and [C50](https://cran.r-project.org/web/packages/C50/index.html).
+
+```{r}
+# library packages
+library(ggplot2); library(lattice)
+library(caret)
+library(C50)
+library(dplyr)
+```
+
+## Data
+
+The data comes from a university registrar's office. The code book for the variables are available in the file code-book.txt. Examine the variables and their definitions.
+
+Upload the drop-out.csv data into R as a data frame. 
+
+```{r}
+dropout<-read.csv("drop-out.csv", header=TRUE)
+```
+
+The next step is to separate the data set into a training set and a test set. Randomly select 25% of the students to be the test data set and leave the remaining 75% for your training data set. 
+
+```{r}
+length(unique(dropout$student_id))*0.75 # the result shows that 75% of students if 511
+
+inTrain<-data.frame(sample(unique(dropout$student_id), size=511))
+names(inTrain)<-c("student_id")
+
+training<-inner_join(dropout, inTrain, by="student_id")
+testing<-anti_join(dropout, inTrain, by="student_id")
+
+```
+
+Here I will be predicting the student level variable "complete". Visualize the relationships between the chosen variables as a scatterplot matrix, and explore relationships with other visualizations.
+
+```{r}
+library(AppliedPredictiveModeling)
+transparentTheme(trans=0.9)
+featurePlot(x=training[,c("entrance_test_score", "courses_taken")], y=training$complete, plot="density", scales=list(x=list(relation="free"), y=list(relation="free")), pch="|", layout=c(2,1), auto.key=list(colums=3))
+
+featurePlot(x=training[,c("entrance_test_score", "courses_taken")], y=training$complete, plot="box",scales=list(x=list(relation="free"), y=list(relation="free")), layout=c(2,1), auto.key=list(columns=2))
+
+```
+
+## CART Trees
+
+Construct a classification tree that predicts complete using the caret package.
+```{r}
+
+training2 <- training[,c(2:10)] #Remove the student_id variable that we do not want to use in the model
+
+#Define the control elements we would like to use
+ctrl <- trainControl(method = "repeatedcv", #Tell caret to perform 10-fold cross validation
+                repeats = 3, #Tell caret to repeat each fold three times
+                classProbs = TRUE, #Calculate class probabilities for ROC calculation
+                summaryFunction = twoClassSummary)
+
+#Define the model
+cartFit <- train(complete ~ ., #Define which variable to predict 
+                data = training2, #Define the data set to train the model on
+                trControl = ctrl, #Tell caret the control elements
+                method = "rpart", #Define the model type
+                metric = "ROC", #Tell caret to calculate the ROC curve
+                preProc = c("center", "scale")) #Center and scale the data to minimize the 
+
+#Check the results
+cartFit
+                
+#Plot ROC against complexity 
+plot(cartFit)
+
+```
+
+Now predict results from the test data.
+
+```{r}
+testing2 <- testing[,c(2:10)] #Remove the student_id variable that we do not want to use in the model
+
+#Generate prediction using previously trained model
+cartClasses <- predict(cartFit, newdata = testing2)
+
+#Generate model statistics
+confusionMatrix(data = cartClasses, testing2$complete)
+
+```
+
+## Conditional Inference Tree
+Train a Conditional Inference Tree using the `party` package on the same training data and examine the results.
+```{r}
+library(party)
+# define the prediction model
+partyFit<-ctree(complete~., data=training2)
+# plot the tree
+plot(partyFit)
+
+```
+
+Now test the new Conditional Inference model by predicting the test data and generating model fit statistics.
+
+```{r}
+# predict the testing data with model constructed with "party" package
+partyClasses<-predict(partyFit, newdata=testing2)
+
+#Generate model statistics
+confusionMatrix(data = partyClasses, testing2$complete)
+```
+
+## C50
+
+Install the C50 package, train and then test the C5.0 model on the same data.
+
+```{r}
+library(C50)
+
+# Train the model using "C5.0"
+c50Fit<-C5.0(training2[,-4], training2[,4])
+
+# predict with c50Fit model
+c50Classes<-predict(c50Fit,newdata=testing2)
+
+confusionMatrix(c50Classes, testing2$complete)
+
+```
+
+## Compare the models
+
+caret allows us to compare all three models at once.
+
+```{r}
+resamps <- resamples(list(cart = cartFit, jfoureight = j48Fit, cfiveo = c50Fit))
+summary(resamps)
+```
+
+What does the model summary tell us? Which model do you believe is the best?
+
+Which variables (features) within your chosen model are important, do these features provide insights that may be useful in solving the problem of students dropping out of courses?
