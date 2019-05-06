@@ -32,11 +32,63 @@ testing<-anti_join(dropout, inTrain, by="student_id")
 
 Here I will be predicting the student level variable "complete". Visualize the relationships between the chosen variables as a scatterplot matrix, and explore relationships with other visualizations.
 
+![scatter](https://github.com/ab4499/Predict_drop_out/blob/master/graphs/scatter.png "github")
+
+![eda1](https://github.com/ab4499/Predict_drop_out/blob/master/graphs/EDA1.png "github")
+
+![eda2](https://github.com/ab4499/Predict_drop_out/blob/master/graphs/EDA2.png "github")
 
 
+### CART Trees
+
+Construct a classification tree that predicts complete using the caret package.
+
+Check the results
+
+![cart](https://github.com/ab4499/Predict_drop_out/blob/master/graphs/cart_result.png)
+
+Plot ROC against complexity 
+
+![roc](https://github.com/ab4499/Predict_drop_out/blob/master/graphs/ROC.png "github")
+
+Now predict results from the test data. Generate model statistics
+
+![predict1](https://github.com/ab4499/Predict_drop_out/blob/master/graphs/predict1.png "github")
 
 
+## Conditional Inference Tree
+Train a Conditional Inference Tree using the `party` package on the same training data and examine the results.
 
+```{r}
+# define the prediction model
+partyFit<-ctree(complete~., data=training2)
+# plot the tree
+plot(partyFit)
+```
+![party](https://github.com/ab4499/Predict_drop_out/blob/master/graphs/Partyfit.png)
 
+Now test the new Conditional Inference model by predicting the test data and generating model fit statistics.
 
+![predict2](https://github.com/ab4499/Predict_drop_out/blob/master/graphs/predict2.png "github")
+
+## C50
+
+Install the C50 package, train and then test the C5.0 model on the same data.
+
+```{r}
+# Train the model using "C5.0"
+c50Fit<-C5.0(training2[,-4], training2[,4])
+
+# predict with c50Fit model
+c50Classes<-predict(c50Fit,newdata=testing2)
+
+confusionMatrix(c50Classes, testing2$complete)
+```
+
+## Compare the models
+
+```{r}
+resamps <- resamples(list(cart = cartFit, jfoureight = j48Fit, cfiveo = c50Fit))
+summary(resamps)
+```
 
