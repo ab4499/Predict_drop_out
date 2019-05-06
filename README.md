@@ -85,10 +85,5 @@ c50Classes<-predict(c50Fit,newdata=testing2)
 confusionMatrix(c50Classes, testing2$complete)
 ```
 
-## Compare the models
-
-```{r}
-resamps <- resamples(list(cart = cartFit, jfoureight = j48Fit, cfiveo = c50Fit))
-summary(resamps)
-```
+![predict3](https://github.com/ab4499/Predict_drop_out/blob/master/graphs/predict3.png "github")
 
