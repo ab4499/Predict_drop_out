@@ -87,3 +87,10 @@ confusionMatrix(c50Classes, testing2$complete)
 
 ![predict3](https://github.com/ab4499/Predict_drop_out/blob/master/graphs/predict3.png "github")
 
+## Relevant Materials
+
+[Brooks, C. & Thompson, C. (2017). Predictive modelling in teaching and learning. In The Handbook of Learning Analytics. SOLAR: Vancouver, BC](https://solaresearch.org/hla-17/hla17-chapter5/)
+
+[Jalayer Academy. (2015). R - Classification Trees (part 1 using C5.0)](https://www.youtube.com/watch?v=5NquIfQxpxk)
+
+[The caret package](https://topepo.github.io/caret/train-models-by-tag.html)
